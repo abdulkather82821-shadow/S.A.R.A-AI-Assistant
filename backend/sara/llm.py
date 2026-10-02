@@ -1,6 +1,6 @@
 """Gemini LLM integration for S.A.R.A.
 
-Uses Google's new `google-genai` SDK and the Gemini 2.0 Flash model,
+Uses Google's new `google-genai` SDK and a configurable Gemini model,
 which is fast, multimodal, supports function calling, and has a large
 context window — perfect for a real-time voice assistant.
 """
@@ -90,7 +90,7 @@ class SaraLLM:
         self.client = genai.Client(api_key=config.gemini_api_key)
         self._missing_key = False
         self.tools = _build_tools()
-        self.model = "gemini-2.0-flash"
+        self.model = config.gemini_model
 
     def _system_instruction(self) -> str:
         return SYSTEM_PROMPT.format(owner=config.owner_name)
@@ -109,7 +109,7 @@ class SaraLLM:
                 "type": "text",
                 "text": (
                     f"{config.owner_name}, I'm not fully online yet. "
-                    "Please set your GEMINI_API_KEY in the .env file and restart me."
+                    "Please set your Gemini API key in the desktop settings or .env file and restart me."
                 ),
             }
             yield {"type": "end", "text": "API key not configured."}

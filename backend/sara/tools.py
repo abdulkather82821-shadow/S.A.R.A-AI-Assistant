@@ -333,7 +333,7 @@ def tell_about_sara() -> dict[str, Any]:
         "name": "S.A.R.A",
         "full_name": "Smart Assistant for Responsive Actions",
         "creator": config.owner_name,
-        "powered_by": "Google Gemini 2.0 Flash for reasoning, ElevenLabs for voice",
+        "powered_by": f"Google {config.gemini_model} for reasoning, ElevenLabs for voice",
         "voice_id": config.elevenlabs_voice_id,
         "capabilities": [
             "Voice conversation on laptop and mobile",

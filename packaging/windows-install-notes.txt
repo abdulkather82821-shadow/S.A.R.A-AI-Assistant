@@ -1,0 +1,33 @@
+S.A.R.A - Windows desktop assistant
+
+This installer includes Python and all application dependencies. You do not
+need Python, Git, Node.js, or a terminal to use the installed application.
+
+After installation, launch S.A.R.A from the Start menu. Add your Google Gemini
+API key in the settings window. Add an ElevenLabs API key for spoken replies
+(optional; without it, responses are text-only). Never share API keys in chat.
+
+Select Start S.A.R.A. The local assistant opens in your default browser. Use
+Chrome or Edge for microphone support, and allow microphone access if asked.
+Keep the S.A.R.A desktop window open while you use the assistant. Closing that
+window stops its local server.
+
+Internet access is required. Prompts/audio are sent to the configured Google
+Gemini / ElevenLabs services; API usage is subject to their terms and quotas.
+
+The desktop server listens only on your laptop's loopback interface; it is not
+available to other devices on Wi-Fi. Do not run S.A.R.A as administrator. Some
+assistant tools can execute shell commands on your laptop. The existing command
+blocklist is not a security sandbox; use this personal assistant only with
+trusted requests.
+
+Settings and logs: %LOCALAPPDATA%\SARA
+Installation files: %LOCALAPPDATA%\Programs\SARA (unless you choose another folder)
+API keys are saved in a local .env file in your user profile, not encrypted.
+Uninstall using Windows Settings > Apps. Personal settings are preserved;
+delete %LOCALAPPDATA%\SARA manually if you also want to remove those settings.
+
+This is an unsigned community build. Windows may display an unknown-publisher
+or SmartScreen warning. Install only if you trust the repository and downloaded
+file. A SHA-256 checksum is provided to check download integrity; it is not a
+code-signing certificate or a guarantee of safety.

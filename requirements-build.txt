@@ -1,0 +1,4 @@
+# Install only on the Windows build machine, not on the user's laptop.
+-r requirements.txt
+pyinstaller==6.16.0
+pytest==8.4.2

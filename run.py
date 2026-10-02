@@ -6,7 +6,6 @@ Usage:
 """
 import argparse
 import os
-import sys
 import uvicorn
 
 
@@ -17,7 +16,6 @@ def main() -> None:
     parser.add_argument("--reload", action="store_true", help="auto-reload on code changes")
     args = parser.parse_args()
 
-    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "backend"))
     uvicorn.run(
         "backend.main:app",
         host=args.host,
