@@ -4,6 +4,7 @@ param([switch]$SkipDependencyInstall)
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+$env:PYTHONUTF8 = "1"
 $Root = Split-Path -Parent $PSScriptRoot
 Push-Location $Root
 try {

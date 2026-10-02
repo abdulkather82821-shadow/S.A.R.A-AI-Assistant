@@ -10,6 +10,7 @@ import json
 import os
 import socket
 import subprocess
+import sys
 import tempfile
 import time
 import uuid
@@ -133,7 +134,7 @@ def main() -> None:
                                     env=env, timeout=180)
             if result.returncode != 0:
                 if installer_log.is_file():
-                    print(installer_log.read_text(encoding="utf-8", errors="replace"), flush=True)
+                    print(installer_log.read_text(encoding="utf-8-sig", errors="replace"), flush=True)
                 raise AssertionError(f"Silent install failed with exit code {result.returncode}")
             try:
                 assert (installed / "unins000.exe").is_file()
@@ -149,4 +150,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    # Windows pipes otherwise default to cp1252, which cannot print diagnostic
+    # BOMs, Unicode paths or provider messages reliably.
+    sys.stdout.reconfigure(encoding="utf-8", errors="backslashreplace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
     main()
