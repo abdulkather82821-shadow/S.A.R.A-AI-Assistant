@@ -26,7 +26,7 @@
   transcription on unsupported browsers.
 - 🔊 **Natural ElevenLabs voice** — S.A.R.A responds out loud using your
   chosen Sarah voice (`r1KmysJdVYZjJCm4mL3b`).
-- 🧠 **Gemini 2.0 Flash reasoning** with function-calling tools:
+- 🧠 **Configurable Gemini reasoning** (`gemini-2.5-flash` by default) with function-calling tools:
   - Telling time & date
   - Weather anywhere (Open-Meteo, no extra key needed)
   - Web search (DuckDuckGo instant answers)
@@ -41,9 +41,11 @@
   audio visualizer rings, starfield background, scanlines, and live
   time/battery/connection readouts. Works on phones and laptops.
 - ⌨️ **Hotkey**: press `Ctrl/Cmd + Space` to start/stop listening.
-- 🔐 **Private & local**: your voice and text go directly from your browser to
-  the Python backend you run, then to Gemini/ElevenLabs over HTTPS. No third
-  parties, no tracking.
+- 💻 **Windows installer** — install a bundled desktop launcher with no separate
+  Python setup, first-run API-key settings, Start-menu shortcut and uninstaller.
+- 🔐 **Locally hosted**: your voice and text go from your browser to your own
+  backend, then to Gemini/ElevenLabs over HTTPS. These are cloud services that
+  receive your requests; there are no added analytics or tracking.
 
 ## Project layout
 
@@ -61,7 +63,13 @@ S.A.R.A-AI-Assistant/
 │   ├── css/style.css        # Cyan/neon theme
 │   └── js/app.js            # Voice capture, SSE streaming, visualizer, actions
 ├── requirements.txt
-├── run.py                   # Uvicorn launcher
+├── desktop_launcher.py      # Windows settings UI + local server lifecycle
+├── packaging/               # PyInstaller spec, Inno Setup installer, app icon
+├── scripts/                 # Windows build and offline installation smoke test
+├── tests/                   # Offline runtime/settings/security regression tests
+├── docs/WINDOWS.md          # Installation, privacy and developer build guide
+├── .github/workflows/       # Native Windows .exe build + downloadable artifact
+├── run.py                   # Uvicorn source/server launcher
 ├── run.sh                   # One-shot venv + launch script (macOS/Linux)
 ├── .env.example             # Copy to .env and add keys
 └── README.md
@@ -93,7 +101,28 @@ S.A.R.A-AI-Assistant/
    - From your phone on the same Wi-Fi: visit http://<your-laptop-ip>:8000
      (your OS may ask to allow Python through the firewall — say yes).
 
-## Quick start (Windows)
+## Install on Windows (recommended)
+
+**64-bit Windows 10 / 11:** use the **[Windows installer](docs/WINDOWS.md)**.
+Python, Git and Node.js are **not** required on your laptop.
+
+1. Download **SARA-Windows-x64** from a successful run of
+   [Build Windows installer](https://github.com/abdulkather82821-shadow/S.A.R.A-AI-Assistant/actions/workflows/windows-installer.yml)
+   and extract the downloaded artifact.
+2. Run **`SARA-Setup-1.1.0-x64.exe`** and install for your Windows user.
+3. Launch **S.A.R.A** from the Start menu. Enter your **Gemini API key**;
+   optionally add an **ElevenLabs key** for spoken replies.
+4. Click **Start S.A.R.A**. It opens in your browser; Chrome or Edge is
+   recommended. Keep the desktop window open while using it.
+
+Settings are saved to `%LOCALAPPDATA%\SARA\.env`, separate from the installed
+program. The server listens only on your laptop, and closing the desktop
+window stops it. **Internet and your own API keys are still required.**
+The build is unsigned, so Windows may show an unknown-publisher warning;
+only install a build you trust. See the [Windows guide](docs/WINDOWS.md) for
+checksums, troubleshooting, uninstalling and building the installer yourself.
+
+### Windows source/developer setup
 
 ```powershell
 python -m venv .venv
@@ -104,14 +133,17 @@ copy .env.example .env
 python run.py
 ```
 
-Then open http://localhost:8000 in Chrome/Edge.
+Then open http://localhost:8000 in Chrome/Edge. To develop the native desktop
+launcher instead, run `python desktop_launcher.py` (it uses its own per-user
+settings, not the repository `.env`).
 
 ## `.env` reference
 
 | Variable              | Purpose                                                              | Default                        |
 |-----------------------|----------------------------------------------------------------------|--------------------------------|
 | `GEMINI_API_KEY`      | Google Gemini API key                                                | *(required)*                   |
-| `ELEVENLABS_API_KEY`  | ElevenLabs API key                                                   | *(required)*                   |
+| `GEMINI_MODEL`        | Model used for chat and audio transcription                            | `gemini-2.5-flash`              |
+| `ELEVENLABS_API_KEY`  | ElevenLabs API key (optional; required for spoken replies)              | *(unset)*                      |
 | `ELEVENLABS_VOICE_ID` | Which voice S.A.R.A speaks with                                      | `r1KmysJdVYZjJCm4mL3b` (Sarah) |
 | `SARA_OWNER_NAME`     | How S.A.R.A addresses you (e.g. `"Sir"`, `"Boss"`, `"Alex"`)         | `Sir`                          |
 | `SARA_LATITUDE`       | Optional fixed latitude for weather (otherwise IP/geolocation used)  | *(auto-detect)*                |
@@ -142,8 +174,9 @@ Try these:
 
 ## Switching voices
 
-You can change S.A.R.A's voice at any time by editing `ELEVENLABS_VOICE_ID` in
-`.env` and restarting the server. You can grab any ElevenLabs voice ID from
+For the installed Windows app, stop the server, edit **ElevenLabs voice ID**
+in the desktop settings window, save, and start again. For source launches,
+edit `ELEVENLABS_VOICE_ID` in `.env` and restart the server. You can grab any ElevenLabs voice ID from
 its share URL (the last slug is the ID). For example:
 
 - Sarah (default): `r1KmysJdVYZjJCm4mL3b`
@@ -153,13 +186,19 @@ You can also **clone your own voice** in ElevenLabs and paste that voice ID.
 
 ## Running on mobile
 
-The recommended way:
+The Windows installer is deliberately laptop-only (loopback). For mobile,
+use the source server setup below. Microphone access from another device
+requires **HTTPS**, even on the same Wi-Fi; plain HTTP can still be used for
+text chat.
+
+The source setup:
 
 1. Start S.A.R.A on your laptop with `./run.sh`.
 2. Find your laptop's local IP (on macOS/Linux: `ifconfig` / `ip a`).
 3. Make sure your phone is on the same Wi-Fi network.
 4. Open `http://<laptop-ip>:8000` in Chrome or Safari on your phone.
-5. Tap the mic and grant microphone permission when prompted.
+5. Type to chat. To use the mic, serve the app over trusted HTTPS and grant
+   microphone permission when prompted.
 
 For true always-on access you can deploy the backend to a small VPS, a
 Raspberry Pi, or a service like Render / Fly.io — just make sure HTTPS is
@@ -180,6 +219,8 @@ wiring needed. Restart the server and say "Launch a mission to Mars".
 
 ## Notes & safety
 
+- **Do not run the desktop app as administrator.** The existing shell-command
+  blocklist is not a security sandbox; make only trusted requests.
 - The `run_terminal_command` tool blocks obvious dangerous operations (`rm`,
   `sudo`, `curl`, `wget`, `chmod 777`, etc.). Only run S.A.R.A on a machine
   you control, and treat it as you would any shell.
@@ -189,3 +230,16 @@ wiring needed. Restart the server and say "Launch a mission to Mars".
   because this is designed for personal use.
 
 Welcome online, Sir/Madam. S.A.R.A is standing by.
+
+## Tests and Windows builds
+
+```bash
+python -m pip install -r requirements.txt pytest==8.4.2
+python -m pytest -q
+```
+
+On Windows, `scripts/build-windows.ps1` runs tests, bundles Python and the
+frontend with PyInstaller, compiles an Inno Setup `.exe`, then tests a real
+silent install and uninstall without API keys. GitHub Actions does the same
+on a native Windows runner and publishes **SARA-Windows-x64** as a download.
+Build outputs stay out of Git. See [docs/WINDOWS.md](docs/WINDOWS.md).

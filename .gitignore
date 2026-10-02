@@ -35,3 +35,9 @@ Thumbs.db
 # Node (if you later add build tooling)
 node_modules/
 .env
+
+# Windows packaging output (never commit binaries or personal profiles)
+*.exe
+*.msi
+*.zip
+.artifacts/

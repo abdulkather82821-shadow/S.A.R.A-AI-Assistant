@@ -20,34 +20,53 @@ from typing import Any
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import (
-    FileResponse,
     JSONResponse,
     Response,
     StreamingResponse,
 )
 from pydantic import BaseModel, Field
+from starlette.staticfiles import StaticFiles
+from urllib.parse import urlsplit
 
-from sara.config import config
-from sara.llm import llm
-from sara.tts import tts as tts_service
+from backend.sara import __version__
+from backend.sara.config import config
+from backend.sara.llm import llm
+from backend.sara.paths import is_desktop, resource_root
+from backend.sara.tts import tts as tts_service
 
 # ---------------------------------------------------------------------------
 # App
 # ---------------------------------------------------------------------------
-FRONTEND_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
+FRONTEND_DIR = resource_root() / "frontend"
 
 app = FastAPI(
     title="S.A.R.A — Smart Assistant for Responsive Actions",
-    version="1.0.0",
+    version=__version__,
     description="A J.A.R.V.I.S-style personal AI assistant (Gemini + ElevenLabs).",
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[os.getenv("SARA_LOCAL_ORIGIN", "http://127.0.0.1:8000")] if is_desktop() else ["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def desktop_origin_guard(request: Request, call_next):
+    """Do not let arbitrary websites or DNS rebinding reach an installed app.
+
+    Source/LAN/hosted launches keep their existing behavior. The desktop
+    launcher also binds only to loopback, using an automatically chosen port.
+    """
+    if is_desktop():
+        allowed = os.getenv("SARA_LOCAL_ORIGIN", "http://127.0.0.1:8000")
+        if (request.headers.get("host") != urlsplit(allowed).netloc
+                or request.headers.get("origin") not in (None, allowed)
+                or request.headers.get("sec-fetch-site") == "cross-site"):
+            return JSONResponse({"detail": "Local desktop requests only."}, status_code=403)
+    return await call_next(request)
 
 
 # ---------------------------------------------------------------------------
@@ -75,7 +94,9 @@ async def health() -> dict[str, Any]:
     return {
         "ok": True,
         "name": "S.A.R.A",
-        "version": "1.0.0",
+        "version": __version__,
+        "gemini_model": config.gemini_model,
+        "desktop_instance": os.getenv("SARA_DESKTOP_INSTANCE", ""),
         "gemini_configured": bool(config.gemini_api_key) and not config.gemini_api_key.startswith("your_"),
         "elevenlabs_configured": bool(config.elevenlabs_api_key) and not config.elevenlabs_api_key.startswith("your_"),
         "voice_id": config.elevenlabs_voice_id,
@@ -205,7 +226,7 @@ async def speech_to_text(req: STTRequest):
         client = genai.Client(api_key=config.gemini_api_key)
         # Use the audio as inline bytes; transcribe + lightly punctuate.
         response = client.models.generate_content(
-            model="gemini-2.0-flash",
+            model=config.gemini_model,
             contents=[
                 "Transcribe the following user speech accurately. "
                 "Return ONLY the transcribed text, no commentary, no quotes.",
@@ -222,20 +243,11 @@ async def speech_to_text(req: STTRequest):
 # ---------------------------------------------------------------------------
 # Static frontend
 # ---------------------------------------------------------------------------
-@app.get("/")
-async def root():
-    return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
-
-
-@app.get("/{path:path}")
-async def static_files(path: str):
-    full = os.path.join(FRONTEND_DIR, path)
-    if os.path.isfile(full):
-        return FileResponse(full)
-    # SPA fallback
-    return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
+# StaticFiles confines requests to the frontend directory, including when the
+# app is frozen. Configuration and per-user credentials are never web assets.
+app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")
 
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=True)
