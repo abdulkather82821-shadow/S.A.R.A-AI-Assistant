@@ -16,7 +16,10 @@ import time
 import uuid
 from pathlib import Path
 from urllib.error import URLError, HTTPError
-from urllib.request import Request, urlopen
+from urllib.request import Request, ProxyHandler, build_opener
+
+
+_LOCAL_HTTP = build_opener(ProxyHandler({}))
 
 
 def free_port() -> int:
@@ -26,7 +29,7 @@ def free_port() -> int:
 
 
 def read_url(url: str, **kwargs) -> tuple[int, str]:
-    with urlopen(Request(url, **kwargs), timeout=5) as response:
+    with _LOCAL_HTTP.open(Request(url, **kwargs), timeout=5) as response:
         return response.status, response.read().decode("utf-8")
 
 

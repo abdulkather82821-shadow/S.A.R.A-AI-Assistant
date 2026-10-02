@@ -96,7 +96,7 @@ that directory if you want to preserve your settings.
 ## Build the `.exe` yourself (developers only)
 
 PyInstaller builds must run **on Windows**, not on Linux with a renamed
-binary. Install 64-bit Python 3.11+ and [Inno Setup 6.3+](https://jrsoftware.org/isdl.php).
+binary. Install 64-bit Python 3.11–3.13 (3.13 recommended) and [Inno Setup 6.3+](https://jrsoftware.org/isdl.php).
 Then open PowerShell in the repository:
 
 ```powershell
@@ -110,7 +110,8 @@ If your system policy prevents virtual-environment activation, use the
 or invoke the build tools with the virtual environment on `PATH` instead of
 weakening a machine-wide policy.
 
-The script installs build dependencies, runs offline tests, freezes the app
+GitHub Actions builds with current 64-bit Python 3.13; Linux source tests also
+run on Python 3.11. The script installs build dependencies, runs offline tests, freezes the app
 with PyInstaller, checks the bundled GUI/backend/assets, compiles the Inno
 Setup installer, performs a silent install/uninstall smoke test, and writes:
 

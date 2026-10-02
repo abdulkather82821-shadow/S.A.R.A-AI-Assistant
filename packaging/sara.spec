@@ -23,7 +23,9 @@ hiddenimports = [
     "uvicorn.lifespan.on", "backend.main",
 ]
 for package in ("google.genai", "elevenlabs"):
-    package_data, package_binaries, package_imports = collect_all(package)
+    # Modules are already in PYZ. Duplicating SDK .py files can exceed Windows
+    # MAX_PATH (notably ElevenLabs generated types) in user-selected folders.
+    package_data, package_binaries, package_imports = collect_all(package, include_py_files=False)
     datas += package_data
     binaries += package_binaries
     hiddenimports += package_imports

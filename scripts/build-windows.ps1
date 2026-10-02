@@ -1,4 +1,4 @@
-# Run in PowerShell on 64-bit Windows with Python 3.11+ and Inno Setup 6.3+.
+# Run in PowerShell on 64-bit Windows with Python 3.11-3.13 and Inno Setup 6.3+.
 [CmdletBinding()]
 param([switch]$SkipDependencyInstall)
 
@@ -8,7 +8,7 @@ $env:PYTHONUTF8 = "1"
 $Root = Split-Path -Parent $PSScriptRoot
 Push-Location $Root
 try {
-    & python -c "import sys, struct; assert sys.platform == 'win32' and struct.calcsize('P') == 8, 'Build on 64-bit Windows'; assert sys.version_info >= (3, 11), 'Python 3.11+ required'"
+    & python -c "import sys, struct; assert sys.platform == 'win32' and struct.calcsize('P') == 8, 'Build on 64-bit Windows'; assert (3, 11) <= sys.version_info[:2] <= (3, 13), 'Python 3.11-3.13 required (3.13 recommended)'"
     if ($LASTEXITCODE -ne 0) { throw "Unsupported build environment" }
 
     if (-not $SkipDependencyInstall) {

@@ -18,13 +18,16 @@ import uuid
 import webbrowser
 from pathlib import Path
 from urllib.error import URLError
-from urllib.request import urlopen
+from urllib.request import ProxyHandler, build_opener
 
 from dotenv import dotenv_values
 
 from backend.sara import __version__
 from backend.sara.defaults import DEFAULT_GEMINI_MODEL, DEFAULT_VOICE_ID
 from backend.sara.paths import profile_env_path, resource_root, user_data_dir
+
+# Never route local health probes through a system/corporate HTTP proxy.
+_LOCAL_HTTP = build_opener(ProxyHandler({}))
 
 DEFAULT_SETTINGS = {
     "GEMINI_API_KEY": "",
@@ -132,7 +135,7 @@ class ServerController:
         if not self.running:
             return False
         try:
-            with urlopen(self.url + "/api/health", timeout=0.4) as response:
+            with _LOCAL_HTTP.open(self.url + "/api/health", timeout=0.4) as response:
                 health = json.load(response)
             return (health.get("ok") is True and health.get("name") == "S.A.R.A"
                     and health.get("desktop_instance") == self.instance)
@@ -345,8 +348,18 @@ def check_install(report_path: Path) -> int:
     try:
         import tkinter as tk
         from backend.main import app
+        from backend.sara.llm import _build_tools
+        from google import genai
+        from elevenlabs.client import ElevenLabs
 
         assert app.title.startswith("S.A.R.A")
+        # Construct configured SDKs and tool schemas with dummy keys, without
+        # calling a provider. Missing-key-only tests would miss lazy imports.
+        google_client = genai.Client(api_key="offline-installation-diagnostic")
+        ElevenLabs(api_key="offline-installation-diagnostic")
+        if hasattr(google_client, "close"):
+            google_client.close()
+        assert _build_tools()[0].function_declarations
         for asset in ("frontend/index.html", "frontend/css/style.css", "frontend/js/app.js",
                       "packaging/assets/sara.ico"):
             if not (resource_root() / asset).is_file():
