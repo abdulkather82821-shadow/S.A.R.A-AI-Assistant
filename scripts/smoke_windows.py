@@ -40,10 +40,15 @@ def expect_forbidden(url: str, headers: dict[str, str]) -> None:
 
 def exercise(executable: Path, workdir: Path, env: dict[str, str]) -> None:
     report = workdir / "installation-report.json"
-    subprocess.run([str(executable), "--check-install", str(report)], env=env,
-                   cwd=workdir, check=True, timeout=60)
+    result = subprocess.run([str(executable), "--check-install", str(report)], env=env,
+                            cwd=workdir, timeout=60)
+    if not report.is_file():
+        profile_log = Path(env["SARA_DATA_DIR"]) / "launcher.log"
+        if profile_log.is_file():
+            print(profile_log.read_text(encoding="utf-8", errors="replace"), flush=True)
+        raise AssertionError(f"Installation diagnostic produced no report (exit {result.returncode})")
     diagnostic = json.loads(report.read_text(encoding="utf-8"))
-    assert diagnostic["ok"], diagnostic
+    assert result.returncode == 0 and diagnostic["ok"], diagnostic
     print("Bundled GUI, SDKs and static assets: OK", flush=True)
 
     port = free_port()
@@ -122,9 +127,14 @@ def main() -> None:
             exercise(args.executable.resolve(), work, env)
         else:
             installed = work / "Installed SARA With Spaces"
-            subprocess.run([str(args.installer.resolve()), "/VERYSILENT", "/SUPPRESSMSGBOXES",
-                            "/NORESTART", "/SP-", f"/DIR={installed}"], env=env,
-                           check=True, timeout=180)
+            installer_log = work / "installer.log"
+            result = subprocess.run([str(args.installer.resolve()), "/VERYSILENT", "/SUPPRESSMSGBOXES",
+                                     "/NORESTART", "/SP-", f"/DIR={installed}", f"/LOG={installer_log}"],
+                                    env=env, timeout=180)
+            if result.returncode != 0:
+                if installer_log.is_file():
+                    print(installer_log.read_text(encoding="utf-8", errors="replace"), flush=True)
+                raise AssertionError(f"Silent install failed with exit code {result.returncode}")
             try:
                 assert (installed / "unins000.exe").is_file()
                 assert not (installed / ".env").exists(), "The installer bundled credentials"
